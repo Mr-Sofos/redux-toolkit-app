@@ -1,32 +1,51 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect } from 'react';
 import ReactDOM from 'react-dom';
+import { Provider, useSelector, useDispatch } from 'react-redux';
 import {
   completeTask,
   titleChanged,
   taskDeleted,
+  loadTasks,
+  getTasksLoadingStatus,
   getTasks,
+  createTask,
 } from './store/task';
+import { getError } from './store/errors';
 import configureStore from './store/store';
 
 const store = configureStore();
 
 const App = () => {
-  const [state, setState] = useState(store.getState());
+  const state = useSelector(getTasks());
+  const isLoading = useSelector(getTasksLoadingStatus());
+  const error = useSelector(getError());
+  const dispatch = useDispatch();
 
   useEffect(() => {
-    store.dispatch(getTasks());
-    store.subscribe(() => {
-      setState(store.getState());
-    });
-  }, []);
+    dispatch(loadTasks());
+  }, [dispatch]);
 
   const changeTitle = (taskId) => {
-    store.dispatch(titleChanged(taskId));
+    dispatch(titleChanged(taskId));
+  };
+
+  const addNewTask = () => {
+    dispatch(
+      createTask({ userId: 1, title: 'some new task', complited: false })
+    );
   };
 
   const deleteTask = (taskId) => {
-    store.dispatch(taskDeleted(taskId));
+    dispatch(taskDeleted(taskId));
   };
+
+  if (isLoading) {
+    return <h1>Loading...</h1>;
+  }
+
+  if (error) {
+    return <p>{error}</p>;
+  }
 
   return (
     <div>
@@ -37,11 +56,12 @@ const App = () => {
             <p>{el.title}</p>
             <p>{el.description}</p>
             <p>{`Completed ${el.completed}`}</p>
-            <button onClick={() => store.dispatch(completeTask(el.id))}>
+            <button onClick={() => dispatch(completeTask(el.id))}>
               complete
             </button>
             <button onClick={() => changeTitle(el.id)}>ChangeTitle</button>
             <button onClick={() => deleteTask(el.id)}>Delete task</button>
+            <button onClick={() => addNewTask()}>Created task</button>
             <hr />
           </li>
         ))}
@@ -52,7 +72,9 @@ const App = () => {
 
 ReactDOM.render(
   <React.StrictMode>
-    <App />
+    <Provider store={store}>
+      <App />
+    </Provider>
   </React.StrictMode>,
   document.getElementById('root')
 );
